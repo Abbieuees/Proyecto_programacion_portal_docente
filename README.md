@@ -147,5 +147,3 @@ A continuación se detallan los aportes y cambios más importantes registrados e
 ### Edgar Josué Hernández González
 * **`feat: agrego los archvios index y el readme`** - Agregó index.html, portal-docente.html y el README del repositorio.
 
-### Jacqueline Alicia Bolaños Ramos
-* _Pendiente: agregar sus commits significativos._
