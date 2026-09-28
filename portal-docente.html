@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portal Docente UEES - Panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="src/css/styles.css">
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+</head>
+<body class="app-page">
+
+<div class="loading-bar" aria-hidden="true"></div>
+<div id="mobile-overlay" class="mobile-overlay"></div>
+
+<aside id="sidebar" class="sidebar">
+  <div class="sidebar-brand">
+    <img src="src/assets/img/isotipo-uees.png" alt="Logo UEES" width="90" height="59">
+    <span class="sidebar-brand-text">PORTAL<br>DOCENTE<br>UEES</span>
+  </div>
+
+  <nav class="sidebar-nav" aria-label="Menú principal">
+    <a href="#" class="nav-item" data-nav="dashboard">
+      <i class="bi bi-house" aria-hidden="true"></i><span>Inicio</span>
+    </a>
+    <a href="#" class="nav-item" data-nav="evaluations">
+      <i class="bi bi-book" aria-hidden="true"></i><span>Mis asignaturas</span>
+    </a>
+    <a href="#" class="nav-item" data-nav="grades">
+      <i class="bi bi-check2-square" aria-hidden="true"></i><span>Calificaciones</span>
+    </a>
+    <a href="#" class="nav-item" data-nav="history">
+      <i class="bi bi-clock-history" aria-hidden="true"></i><span>Historial</span>
+    </a>
+    <a href="#" class="nav-item" data-nav="profile">
+      <i class="bi bi-person-circle" aria-hidden="true"></i><span>Perfil</span>
+    </a>
+    <a href="#" class="nav-item" data-nav="help">
+      <i class="bi bi-question-circle" aria-hidden="true"></i><span>Ayuda</span>
+    </a>
+  </nav>
+
+  <button id="logout-btn" class="nav-item nav-item-logout">
+    <i class="bi bi-box-arrow-right" aria-hidden="true"></i><span>Cerrar sesión</span>
+  </button>
+</aside>
+
+<div class="main-col">
+  <header class="topbar">
+    <button id="menu-toggle" class="icon-btn menu-toggle" aria-label="Abrir menú" aria-controls="sidebar" aria-expanded="false">
+      <i class="bi bi-list" aria-hidden="true"></i>
+    </button>
+
+    <button id="back-btn" class="back-btn" hidden>
+      <i class="bi bi-arrow-left" aria-hidden="true"></i><span>Volver</span>
+    </button>
+
+    <h2 id="topbar-title" class="topbar-title">Panel del Docente</h2>
+
+    <div class="topbar-actions">
+      <button class="icon-btn" aria-label="Notificaciones">
+        <i class="bi bi-bell" aria-hidden="true"></i>
+      </button>
+      <button id="user-chip" class="icon-btn user-chip" aria-label="Perfil docente">
+        <i class="bi bi-person-circle" aria-hidden="true"></i><span id="chip-name">Docente</span>
+        <i class="bi bi-chevron-down" aria-hidden="true"></i>
+      </button>
+    </div>
+  </header>
+
+  <main class="content">
+
+    <!--  PAGINA: PANEL DEL DOCENTE -->
+    <section id="page-dashboard" class="page active">
+      <h1 class="page-title">Bienvenido, <span id="teacher-name">Docente</span></h1>
+      <p class="page-subtitle">Desde aquí puedes gestionar tus asignaturas y calificaciones</p>
+
+      <h3 class="section-label">Mis asignaturas</h3>
+
+      <div id="subject-cards" class="subject-grid"></div>
+    </section>
+
+    <!--PAGINA: SELECCION DE EVALUACION-->
+    <section id="page-evaluations" class="page">
+      <div class="info-banner">
+        <div>
+          <h2 id="eval-group-title">Grupo: BD-01</h2>
+          <p>
+            <i class="bi bi-people" aria-hidden="true"></i><span id="eval-group-count">Estudiantes inscritos: 22</span>
+          </p>
+        </div>
+      </div>
+
+      <h3 class="section-label">Seleccionar evaluación</h3>
+      <select id="eval-filter" class="select" aria-label="Filtrar por tipo de evaluación">
+        <option value="all">Todas las evaluaciones</option>
+        <option value="TAREA">Tareas</option>
+        <option value="PARCIAL">Parciales</option>
+        <option value="PROYECTO">Proyectos</option>
+      </select>
+
+      <div class="table-wrap">
+        <table class="eval-table">
+          <thead>
+            <tr><th>Evaluación</th><th>Tipo</th><th>Fecha</th><th>Acciones</th></tr>
+          </thead>
+          <tbody id="eval-table-body"></tbody>
+        </table>
+      </div>
+
+      <div id="eval-list" class="eval-list"></div>
+    </section>
+
+    <!--PAGINA: CARGA DE NOTAS-->
+    <section id="page-grades" class="page">
+      <div class="info-banner">
+        <div>
+          <h2 id="grades-group-title">Grupo: BD-01</h2>
+          <p>
+            <i class="bi bi-journal-text" aria-hidden="true"></i><span id="grades-eval-title">Evaluación: Parcial 1</span>
+          </p>
+        </div>
+        <div class="due-date">
+          <i class="bi bi-calendar3" aria-hidden="true"></i><span id="grades-due-date">Fecha límite: 21/08/2026</span>
+        </div>
+      </div>
+
+      <div id="locked-banner" class="info-banner locked" hidden>
+        <i class="bi bi-lock" aria-hidden="true"></i>
+        <span id="locked-text">Estas calificaciones ya fueron trasladadas y no pueden modificarse.</span>
+      </div>
+
+      <div class="table-wrap">
+        <table class="grades-table">
+          <thead>
+            <tr><th>#</th><th>CIF</th><th>Estudiante</th><th>Nota</th><th>Estado</th></tr>
+          </thead>
+          <tbody id="grades-table-body"></tbody>
+        </table>
+      </div>
+
+      <div id="grades-accordion" class="grades-accordion"></div>
+
+      <div class="grades-actions">
+        <button id="cancel-grades" class="btn btn-outline">Cancelar</button>
+        <button id="save-grades" class="btn btn-primary">
+          <i class="bi bi-bookmark" aria-hidden="true"></i>Guardar Calificaciones
+        </button>
+        <button id="translate-grades" class="btn btn-success">
+          <i class="bi bi-arrow-left-right" aria-hidden="true"></i>Trasladar
+        </button>
+      </div>
+
+      <p class="min-grade-note">
+        <i class="bi bi-info-circle" aria-hidden="true"></i><span>Nota mínima aprobatoria: <span id="min-grade">6.0</span></span>
+      </p>
+    </section>
+
+    <!--PAGINA: HISTORIAL-->
+    <section id="page-history" class="page">
+      <h1 class="page-title">Calificaciones trasladadas</h1>
+      <p class="page-subtitle">Consulta en modo lectura las evaluaciones que ya trasladaste</p>
+
+      <p id="history-empty" class="empty-state" hidden>
+        <i class="bi bi-clock-history" aria-hidden="true"></i><span>Aún no has trasladado calificaciones. Cuando lo hagas aparecerán aquí.</span>
+      </p>
+
+      <div id="history-table-wrap" class="table-wrap">
+        <table class="history-table">
+          <thead>
+            <tr><th>Asignatura</th><th>Evaluación</th><th>Trasladada el</th><th>Promedio</th><th>Aprobados</th><th>Acciones</th></tr>
+          </thead>
+          <tbody id="history-table-body"></tbody>
+        </table>
+      </div>
+
+      <div id="history-list" class="eval-list"></div>
+    </section>
+
+    <!--PAGINA: PERFIL-->
+    <section id="page-profile" class="page">
+      <h1 class="page-title">Datos de la cuenta</h1>
+      <p class="page-subtitle">Consulta tu información y actualiza tu contraseña</p>
+
+      <div class="profile-grid">
+        <div class="card">
+          <h3 class="section-label">Datos del docente</h3>
+          <dl class="profile-data">
+            <dt>Nombre</dt>
+            <dd id="profile-name"></dd>
+            <dt>Correo institucional</dt>
+            <dd id="profile-email"></dd>
+            <dt>Asignaturas a cargo</dt>
+            <dd id="profile-subjects"></dd>
+          </dl>
+        </div>
+
+        <form id="password-form" class="card" novalidate>
+          <h3 class="section-label">Cambiar contraseña</h3>
+          <div class="field">
+            <label class="field-label" for="pass-current">Contraseña actual</label>
+            <input type="password" id="pass-current" autocomplete="current-password">
+          </div>
+          <div class="field">
+            <label class="field-label" for="pass-new">Nueva contraseña</label>
+            <input type="password" id="pass-new" autocomplete="new-password" aria-describedby="pass-hint">
+            <p id="pass-hint" class="field-hint">Mínimo 8 caracteres y diferente de la actual.</p>
+          </div>
+          <div class="field">
+            <label class="field-label" for="pass-confirm">Confirmar nueva contraseña</label>
+            <input type="password" id="pass-confirm" autocomplete="new-password">
+          </div>
+          <p id="password-error" class="login-error" role="alert" hidden></p>
+          <button type="submit" class="btn btn-primary btn-block">Guardar contraseña</button>
+        </form>
+      </div>
+    </section>
+
+    <!--PAGINA: AYUDA-->
+    <section id="page-help" class="page">
+      <h1 class="page-title">Preguntas frecuentes</h1>
+      <p class="page-subtitle">Respuestas rápidas sobre el uso del portal</p>
+
+      <div class="faq">
+        <details open>
+          <summary>¿Cómo ingreso las calificaciones?<i class="bi bi-chevron-down" aria-hidden="true"></i></summary>
+          <p>En <strong>Inicio</strong> pulsa <strong>Ingresar</strong> en la asignatura, elige la evaluación con <strong>Seleccionar</strong> y escribe la nota de cada estudiante. Al terminar pulsa <strong>Guardar Calificaciones</strong>.</p>
+        </details>
+        <details>
+          <summary>¿Qué notas son válidas?<i class="bi bi-chevron-down" aria-hidden="true"></i></summary>
+          <p>Notas entre 0.00 y 10.00, con máximo dos decimales. La nota mínima aprobatoria es 6.0 y un campo vacío queda como <strong>PENDIENTE</strong>.</p>
+        </details>
+        <details>
+          <summary>¿Qué significa trasladar las calificaciones?<i class="bi bi-chevron-down" aria-hidden="true"></i></summary>
+          <p>Trasladar registra las notas de forma definitiva. Solo es posible cuando todas las notas están guardadas y ningún estudiante queda pendiente. Después ya no pueden modificarse.</p>
+        </details>
+        <details>
+          <summary>¿Dónde consulto las evaluaciones que ya trasladé?<i class="bi bi-chevron-down" aria-hidden="true"></i></summary>
+          <p>En <strong>Historial</strong> aparecen con su fecha de traslado, el promedio y la cantidad de aprobados. Con <strong>Ver notas</strong> las abres en modo de solo lectura.</p>
+        </details>
+        <details>
+          <summary>¿Qué pasa si salgo sin guardar?<i class="bi bi-chevron-down" aria-hidden="true"></i></summary>
+          <p>El portal te pide confirmación antes de descartar las notas que escribiste. El botón <strong>Cancelar</strong> descarta los cambios que no hayas guardado.</p>
+        </details>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<dialog id="confirm-dialog" class="dialog" aria-labelledby="confirm-title" aria-describedby="confirm-message">
+  <h2 id="confirm-title" class="dialog-title"></h2>
+  <p id="confirm-message" class="dialog-message"></p>
+  <div class="dialog-actions">
+    <button type="button" id="confirm-cancel" class="btn btn-outline">Cancelar</button>
+    <button type="button" id="confirm-ok" class="btn btn-success">Confirmar</button>
+  </div>
+</dialog>
+
+<script src="src/js/reglas.js"></script>
+<script src="src/js/api.js"></script>
+<script src="src/js/main.js"></script>
+</body>
+</html>
