@@ -4,7 +4,12 @@
 
 // Si la página la sirve el backend (npm start) se usa la misma dirección;
 // si se abre desde otro servidor (p. ej. Live Server), se apunta al backend local.
-const API_URL = location.port === "3000" ? "/api" : "http://localhost:3000/api";
+const API_URL =
+  location.hostname === "localhost" || location.hostname === "127.0.0.1"
+    ? (location.port === "3000" ? "/api" : "http://localhost:3000/api")
+    : location.hostname.endsWith("onrender.com")
+      ? "/api"
+      : "https://proyecto-programacion-portal-docente.onrender.com/api";
 
 class ApiError extends Error {
   constructor(status, message, data = null){
