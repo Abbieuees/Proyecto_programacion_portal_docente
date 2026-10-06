@@ -26,7 +26,7 @@
     <a href="#" class="nav-item" data-nav="dashboard">
       <i class="bi bi-house" aria-hidden="true"></i><span>Inicio</span>
     </a>
-    <a href="#" class="nav-item" data-nav="evaluations">
+    <a href="#" class="nav-item" data-nav="subjects">
       <i class="bi bi-book" aria-hidden="true"></i><span>Mis asignaturas</span>
     </a>
     <a href="#" class="nav-item" data-nav="grades">
@@ -73,13 +73,34 @@
 
   <main class="content">
 
-    <!--  PAGINA: PANEL DEL DOCENTE -->
+    <!-- PAGINA: INICIO — se elige el registro en el que se va a trabajar -->
     <section id="page-dashboard" class="page active">
       <h1 class="page-title">Bienvenido, <span id="teacher-name">Docente</span></h1>
-      <p class="page-subtitle">Desde aquí puedes gestionar tus asignaturas y calificaciones</p>
+      <p class="page-subtitle">Selecciona el registro en el que vas a trabajar</p>
 
-      <h3 class="section-label">Mis asignaturas</h3>
+      <h3 class="section-label">Registros del ciclo</h3>
+      <div id="registro-cards" class="registro-grid"></div>
 
+      <p class="min-grade-note">
+        <i class="bi bi-info-circle" aria-hidden="true"></i>
+        <span>Cada registro reparte un porcentaje del ciclo. Las tareas y el parcial
+              de un registro deben sumar el 100&nbsp;% de ese registro.</span>
+      </p>
+    </section>
+
+    <!-- PAGINA: MIS ASIGNATURAS — dentro del registro elegido -->
+    <section id="page-subjects" class="page">
+      <div class="info-banner">
+        <div>
+          <h2 id="subjects-registro-title">Registro 1</h2>
+          <p>
+            <i class="bi bi-percent" aria-hidden="true"></i>
+            <span id="subjects-registro-meta">Vale el 30 % del ciclo</span>
+          </p>
+        </div>
+      </div>
+
+      <h3 class="section-label">Selecciona la asignatura que estás revisando</h3>
       <div id="subject-cards" class="subject-grid"></div>
     </section>
 
@@ -91,7 +112,15 @@
           <p>
             <i class="bi bi-people" aria-hidden="true"></i><span id="eval-group-count">Estudiantes inscritos: 22</span>
           </p>
+          <p>
+            <i class="bi bi-percent" aria-hidden="true"></i><span id="eval-registro-meta">Registro 1 · 30 % del ciclo</span>
+          </p>
         </div>
+      </div>
+
+      <div id="reparto-banner" class="info-banner locked" hidden>
+        <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+        <span id="reparto-text"></span>
       </div>
 
       <h3 class="section-label">Seleccionar evaluación</h3>
@@ -105,7 +134,7 @@
       <div class="table-wrap">
         <table class="eval-table">
           <thead>
-            <tr><th>Evaluación</th><th>Tipo</th><th>Fecha</th><th>Acciones</th></tr>
+            <tr><th>Evaluación</th><th>Tipo</th><th>Vale</th><th>Partes</th><th>Fecha</th><th>Acciones</th></tr>
           </thead>
           <tbody id="eval-table-body"></tbody>
         </table>
@@ -120,7 +149,10 @@
         <div>
           <h2 id="grades-group-title">Grupo: BD-01</h2>
           <p>
-            <i class="bi bi-journal-text" aria-hidden="true"></i><span id="grades-eval-title">Evaluación: Parcial 1</span>
+            <i class="bi bi-journal-text" aria-hidden="true"></i><span id="grades-eval-title">Evaluación: Parcial</span>
+          </p>
+          <p>
+            <i class="bi bi-percent" aria-hidden="true"></i><span id="grades-registro-meta">Registro 1 · vale 40 % del registro</span>
           </p>
         </div>
         <div class="due-date">
@@ -134,10 +166,10 @@
       </div>
 
       <div class="table-wrap">
+        <!-- La cabecera se genera desde main.js: una columna por componente
+             (p. ej. Teórico 60 % y Práctico 40 %) más la nota ponderada. -->
         <table class="grades-table">
-          <thead>
-            <tr><th>#</th><th>CIF</th><th>Estudiante</th><th>Nota</th><th>Estado</th></tr>
-          </thead>
+          <thead id="grades-table-head"></thead>
           <tbody id="grades-table-body"></tbody>
         </table>
       </div>
