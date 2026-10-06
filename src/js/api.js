@@ -86,16 +86,33 @@ const Api = (() => {
     perfil: () => request("GET", "/perfil"),
     cambiarContrasena: (actual, nueva) => request("PUT", "/perfil/contrasena", { actual, nueva }),
 
-    grupos: () => request("GET", "/grupos"),
+    // Registros: el periodo del ciclo que el docente elige antes que nada
+    registros: () => request("GET", "/registros"),
+    registro: (idRegistro) => request("GET", `/registros/${idRegistro}`),
+    gruposDelRegistro: (idRegistro) => request("GET", `/registros/${idRegistro}/grupos`),
+
+    grupos: (idCiclo) => request("GET", `/grupos${idCiclo ? `?ciclo=${idCiclo}` : ""}`),
     grupo: (idGrupo) => request("GET", `/grupos/${idGrupo}`),
-    evaluaciones: (idGrupo, tipo) =>
-      request("GET", `/grupos/${idGrupo}/evaluaciones${tipo ? `?tipo=${encodeURIComponent(tipo)}` : ""}`),
+
+    // Las evaluaciones se piden dentro de un registro; cada una trae sus componentes
+    evaluaciones: (idGrupo, { tipo, idRegistro } = {}) => {
+      const filtros = new URLSearchParams();
+      if (tipo) filtros.set("tipo", tipo);
+      if (idRegistro) filtros.set("registro", idRegistro);
+      const consulta = filtros.toString();
+      return request("GET", `/grupos/${idGrupo}/evaluaciones${consulta ? `?${consulta}` : ""}`);
+    },
+    notasDelRegistro: (idGrupo, idRegistro) =>
+      request("GET", `/grupos/${idGrupo}/registros/${idRegistro}/notas`),
 
     evaluacion: (idEvaluacion) => request("GET", `/evaluaciones/${idEvaluacion}`),
     calificaciones: (idEvaluacion) => request("GET", `/evaluaciones/${idEvaluacion}/calificaciones`),
+    // calificaciones: [{ id_matricula, notas: { id_componente: nota | null } }]
     guardarCalificaciones: (idEvaluacion, calificaciones) =>
       request("PUT", `/evaluaciones/${idEvaluacion}/calificaciones`, { calificaciones }),
     trasladar: (idEvaluacion) => request("POST", `/evaluaciones/${idEvaluacion}/traslado`),
+
+    cum: (idEstudiante) => request("GET", `/estudiantes/${idEstudiante}/cum`),
 
     historial: () => request("GET", "/historial")
   };

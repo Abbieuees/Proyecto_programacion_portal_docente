@@ -272,7 +272,7 @@ if (sidebar) {
     const tipo = $("#eval-filter").value;
     const [group, evaluations] = await Promise.all([
       Api.grupo(id),
-      Api.evaluaciones(id, tipo === "all" ? null : tipo)
+      Api.evaluaciones(id, { tipo: tipo === "all" ? null : tipo, idRegistro: state.registro?.id_registro })
     ]);
     return { group, evaluations };
   }
