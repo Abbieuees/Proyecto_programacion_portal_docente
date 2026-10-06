@@ -14,14 +14,19 @@ const ENDPOINTS = [
   "POST /api/auth/logout",
   "GET  /api/perfil",
   "PUT  /api/perfil/contrasena",
-  "GET  /api/grupos",
+  "GET  /api/registros",
+  "GET  /api/registros/:id",
+  "GET  /api/registros/:id/grupos",
+  "GET  /api/grupos?ciclo=:idCiclo",
   "GET  /api/grupos/:id",
   "GET  /api/grupos/:id/estudiantes",
-  "GET  /api/grupos/:id/evaluaciones?tipo=TAREA|PARCIAL|PROYECTO",
+  "GET  /api/grupos/:id/evaluaciones?registro=:id&tipo=TAREA|PARCIAL|PROYECTO",
+  "GET  /api/grupos/:id/registros/:idRegistro/notas",
   "GET  /api/evaluaciones/:id",
   "GET  /api/evaluaciones/:id/calificaciones",
   "PUT  /api/evaluaciones/:id/calificaciones",
   "POST /api/evaluaciones/:id/traslado",
+  "GET  /api/estudiantes/:id/cum",
   "GET  /api/historial"
 ];
 
@@ -73,8 +78,10 @@ function crearApp({ latenciaMs = 0 } = {}){
   });
   app.use("/api/auth", require("./rutas/auth"));
   app.use("/api/perfil", requireAuth, require("./rutas/perfil"));
+  app.use("/api/registros", requireAuth, require("./rutas/registros"));
   app.use("/api/grupos", requireAuth, require("./rutas/grupos"));
   app.use("/api/evaluaciones", requireAuth, require("./rutas/evaluaciones"));
+  app.use("/api/estudiantes", requireAuth, require("./rutas/estudiantes"));
   app.use("/api/historial", requireAuth, require("./rutas/historial"));
   app.use("/api", (req, res, next) => next(new HttpError(404, `No existe la ruta ${req.method} ${req.originalUrl}.`)));
 
