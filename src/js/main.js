@@ -88,18 +88,23 @@ if (sidebar) {
 
   const state = {
     page: null,
-    groups: [],                // grupos del docente (panel)
-    group: null,               // grupo abierto en "Mis asignaturas"
+    registros: [],             // periodos del ciclo (Inicio)
+    registro: null,            // registro en el que el docente está trabajando
+    groups: [],                // sus asignaturas dentro de ese registro
+    group: null,               // asignatura abierta
     evaluation: null,          // evaluación abierta en la carga de notas
     rows: [],                  // estudiantes de esa evaluación
-    saved: [],                 // notas tal como están guardadas en el servidor
-    draft: null,               // copia editable; se envía al pulsar "Guardar"
+    saved: [],                 // [{ id_componente: nota }] tal como están en el servidor
+    draft: null,               // misma forma, editable; se envía al pulsar "Guardar"
     gradesFrom: "evaluations", // página a la que regresa "Volver" desde la carga de notas
     navSeq: 0                  // número de la última navegación pedida
   };
 
+  // El recorrido es: Inicio (elegir registro) -> Mis asignaturas (elegir asignatura)
+  // -> evaluaciones del registro -> carga de notas por componente.
   const PAGES = {
-    dashboard:   { title: () => "Panel del Docente", load: () => Api.grupos(), paint: paintDashboard },
+    dashboard:   { title: () => "Inicio", load: () => Api.registros(), paint: paintDashboard },
+    subjects:    { title: () => state.registro?.nombre ?? "Mis asignaturas", back: true, load: loadSubjects, paint: paintSubjects },
     evaluations: { title: () => state.group.nombre_asignatura, back: true, load: loadEvaluations, paint: paintEvaluations },
     grades:      { title: () => `${state.evaluation.nombre_asignatura} / ${state.evaluation.nombre}`, back: true, load: loadGrades, paint: paintGrades },
     history:     { title: () => "Historial", load: () => Api.historial(), paint: paintHistory },
@@ -207,8 +212,10 @@ if (sidebar) {
     });
   });
 
+  // Volver sigue el recorrido al revés: notas -> evaluaciones -> asignaturas -> inicio
+  const PAGINA_ANTERIOR = { subjects: "dashboard", evaluations: "subjects" };
   $("#back-btn").addEventListener("click", () => {
-    goTo(state.page === "grades" ? state.gradesFrom : "dashboard");
+    goTo(state.page === "grades" ? state.gradesFrom : (PAGINA_ANTERIOR[state.page] ?? "dashboard"));
   });
 
   $("#user-chip").addEventListener("click", () => {
@@ -238,25 +245,114 @@ if (sidebar) {
   });
 
 
-  function paintDashboard(groups){
-    state.groups = groups;
-    const wrap = $("#subject-cards");
-    if (!groups.length) {
-      wrap.innerHTML = `<p class="empty-state">No tienes grupos asignados en este ciclo.</p>`;
+  /* INICIO: el docente elige el registro en el que va a trabajar.
+     Aquí ya no se muestran las asignaturas; eso vive en "Mis asignaturas". */
+  function paintDashboard(registros){
+    state.registros = registros;
+    const wrap = $("#registro-cards");
+
+    if (!registros.length) {
+      wrap.innerHTML = `<p class="empty-state">No tienes grupos asignados en ningún ciclo.</p>`;
       return;
     }
+    // Si el registro guardado ya no existe (p. ej. cambió el ciclo), se olvida
+    if (state.registro && !registros.some(r => r.id_registro === state.registro.id_registro)) {
+      state.registro = null;
+      state.group = null;
+    }
+
+    wrap.innerHTML = registros.map(r => {
+      const abierto = r.estado === "ABIERTO";
+      const elegido = state.registro?.id_registro === r.id_registro;
+      return `
+      <article class="registro-card ${elegido ? "selected" : ""} ${abierto ? "" : "closed"}">
+        <div class="registro-peso"><strong>${r.ponderacion}</strong><span>%</span></div>
+        <div class="registro-body">
+          <h3>${escapeHtml(r.nombre)}</h3>
+          <span class="subject-meta">Ciclo ${escapeHtml(r.codigo_ciclo)}</span>
+          <span class="subject-meta">
+            <i class="bi bi-calendar3" aria-hidden="true"></i>${formatDate(r.fecha_inicio)} – ${formatDate(r.fecha_fin)}
+          </span>
+          <span class="status-pill ${abierto ? "status-aprobado" : "status-pendiente"}">${abierto ? "ABIERTO" : "CERRADO"}</span>
+          <button class="btn btn-primary" data-registro="${r.id_registro}"
+                  aria-label="Trabajar en ${escapeHtml(r.nombre)} del ciclo ${escapeHtml(r.codigo_ciclo)}">
+            ${elegido ? "Continuar" : "Trabajar aquí"}
+          </button>
+        </div>
+      </article>`;
+    }).join("");
+
+    $$("#registro-cards [data-registro]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const id = Number(btn.dataset.registro);
+        const registro = state.registros.find(r => r.id_registro === id);
+        if (state.registro?.id_registro !== id) state.group = null; // otro registro, otra selección
+        state.registro = registro;
+        goTo("subjects", { registroId: id });
+      });
+    });
+  }
+
+
+  /* MIS ASIGNATURAS: dentro del registro elegido, el docente selecciona
+     cuál está revisando. */
+  async function loadSubjects({ registroId } = {}){
+    const id = registroId ?? state.registro?.id_registro;
+    if (!id) {
+      // Se entró por el menú sin haber elegido registro: se toma el primero abierto
+      const registros = state.registros.length ? state.registros : await Api.registros();
+      state.registros = registros;
+      state.registro = registros.find(r => r.estado === "ABIERTO") ?? registros[0];
+      if (!state.registro) return { registro: null, groups: [] };
+    }
+    const idRegistro = state.registro.id_registro;
+    return { registro: state.registro, groups: await Api.gruposDelRegistro(idRegistro) };
+  }
+
+  function paintSubjects({ registro, groups }){
+    state.groups = groups;
+    const wrap = $("#subject-cards");
+
+    if (!registro) {
+      $("#subjects-registro-title").textContent = "Sin registros";
+      $("#subjects-registro-meta").textContent = "No hay periodos de evaluación disponibles";
+      wrap.innerHTML = `<p class="empty-state">No tienes grupos asignados.</p>`;
+      return;
+    }
+
+    state.registro = registro;
+    $("#subjects-registro-title").textContent = `${registro.nombre} · Ciclo ${registro.codigo_ciclo}`;
+    $("#subjects-registro-meta").textContent =
+      `Vale el ${registro.ponderacion} % del ciclo · ${registro.estado === "ABIERTO" ? "Abierto" : "Cerrado"}`;
+
+    if (!groups.length) {
+      wrap.innerHTML = `<p class="empty-state">No tienes asignaturas en este registro.</p>`;
+      return;
+    }
+
     wrap.innerHTML = groups.map(g => {
       const style = ESTILO_ASIGNATURA[g.codigo_asignatura] ?? ESTILO_POR_DEFECTO;
       const name = escapeHtml(g.nombre_asignatura);
       const code = escapeHtml(g.codigo_grupo);
+      const elegida = state.group?.id_grupo === g.id_grupo;
+      // El reparto debe llegar a 100 % antes de poder cerrar el registro
+      const aviso = g.reparto_completo
+        ? `<span class="subject-meta"><i class="bi bi-check2-circle" aria-hidden="true"></i>Reparto completo (100 %)</span>`
+        : `<span class="subject-meta warn"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i>Reparto incompleto: ${g.reparto} % de 100 %</span>`;
       return `
-      <article class="subject-card">
+      <article class="subject-card ${elegida ? "selected" : ""}">
         <div class="subject-banner ${style.banner}"><i class="${style.icon}" aria-hidden="true"></i></div>
         <div class="subject-body">
           <h3>${name}</h3>
-          <span class="subject-meta">Grupo: ${code} · Ciclo: ${escapeHtml(g.ciclo)}</span>
+          <span class="subject-meta">Grupo: ${code} · Ciclo: ${escapeHtml(g.codigo_ciclo)}</span>
           <span class="subject-meta"><i class="bi bi-people" aria-hidden="true"></i>Estudiantes: ${g.total_estudiantes}</span>
-          <button class="btn btn-primary" data-group="${g.id_grupo}" aria-label="Ingresar a ${name}, grupo ${code}">Ingresar</button>
+          <span class="subject-meta">
+            <i class="bi bi-list-check" aria-hidden="true"></i>${g.trasladadas} de ${g.total_evaluaciones} evaluaciones trasladadas
+          </span>
+          ${aviso}
+          <button class="btn btn-primary" data-group="${g.id_grupo}" aria-label="Revisar ${name}, grupo ${code}">
+            ${elegida ? "Continuar" : "Revisar"}
+          </button>
         </div>
       </article>`;
     }).join("");
@@ -272,6 +368,7 @@ if (sidebar) {
     const tipo = $("#eval-filter").value;
     const [group, evaluations] = await Promise.all([
       Api.grupo(id),
+      // Solo las evaluaciones del registro elegido: cada registro lleva su propia tanda
       Api.evaluaciones(id, { tipo: tipo === "all" ? null : tipo, idRegistro: state.registro?.id_registro })
     ]);
     return { group, evaluations };
@@ -284,6 +381,24 @@ if (sidebar) {
 
     $("#eval-group-title").textContent = `Grupo: ${group.codigo_grupo}`;
     $("#eval-group-count").textContent = `Estudiantes inscritos: ${group.total_estudiantes}`;
+    $("#eval-registro-meta").textContent = state.registro
+      ? `${state.registro.nombre} · vale el ${state.registro.ponderacion} % del ciclo`
+      : "Todos los registros";
+
+    // Aviso de reparto: las evaluaciones del registro deben sumar el 100 % de ese
+    // registro. Solo tiene sentido cuando se está viendo el registro sin filtrar
+    // por tipo; si no, la suma es parcial por definición.
+    const sinFiltro = $("#eval-filter").value === "all" && state.registro;
+    const reparto = evaluations.reduce((total, e) => total + e.ponderacion, 0);
+    $("#reparto-banner").hidden = !(sinFiltro && reparto !== 100);
+    if (sinFiltro && reparto !== 100) {
+      $("#reparto-text").textContent =
+        `Las evaluaciones de este registro suman ${reparto} %. Deben sumar 100 % antes de poder cerrarlo.`;
+    }
+
+    const partes = (e) => e.componentes.length === 1
+      ? "Nota única"
+      : e.componentes.map(c => `${escapeHtml(c.nombre)} ${c.ponderacion} %`).join(" · ");
 
     // tabla (desktop)
     $("#eval-table-body").innerHTML = evaluations.length
@@ -291,10 +406,12 @@ if (sidebar) {
       <tr>
         <td>${escapeHtml(e.nombre)}</td>
         <td>${TIPOS[e.tipo] ?? escapeHtml(e.tipo)}</td>
+        <td>${e.ponderacion} %</td>
+        <td class="eval-partes">${partes(e)}</td>
         <td>${formatDate(e.fecha_evaluacion)}</td>
         <td><button class="btn-select" data-eval="${e.id_evaluacion}" aria-label="Seleccionar ${escapeHtml(e.nombre)}">Seleccionar</button></td>
       </tr>`).join("")
-      : `<tr><td colspan="4">No hay evaluaciones de este tipo.</td></tr>`;
+      : `<tr><td colspan="6">No hay evaluaciones de este tipo en este registro.</td></tr>`;
 
     // lista (móvil)
     $("#eval-list").innerHTML = evaluations.length
@@ -302,14 +419,15 @@ if (sidebar) {
       <button class="eval-row" data-eval="${e.id_evaluacion}">
         <span class="eval-row-main">
           <strong>${escapeHtml(e.nombre)}</strong>
-          <span>${TIPOS[e.tipo] ?? escapeHtml(e.tipo)}</span>
+          <span>${TIPOS[e.tipo] ?? escapeHtml(e.tipo)} · vale ${e.ponderacion} %</span>
+          <span class="eval-partes">${partes(e)}</span>
         </span>
         <span class="eval-row-right">
           <span>${formatDate(e.fecha_evaluacion)}</span>
           <i class="bi bi-chevron-right" aria-hidden="true"></i>
         </span>
       </button>`).join("")
-      : `<p class="empty-state">No hay evaluaciones de este tipo.</p>`;
+      : `<p class="empty-state">No hay evaluaciones de este tipo en este registro.</p>`;
 
     $$("#page-evaluations [data-eval]").forEach(el => {
       el.addEventListener("click", () => goTo("grades", { evaluationId: Number(el.dataset.eval), from: "evaluations" }));
@@ -323,7 +441,7 @@ if (sidebar) {
     if (!id) {
       // Desde el menú, sin evaluación elegida: la primera sin trasladar del grupo actual
       const groupId = state.group?.id_grupo ?? state.groups[0]?.id_grupo;
-      const evaluations = await Api.evaluaciones(groupId);
+      const evaluations = await Api.evaluaciones(groupId, { idRegistro: state.registro?.id_registro });
       id = (evaluations.find(e => e.estado !== "TRASLADADA") ?? evaluations[0])?.id_evaluacion;
     }
     const [evaluation, rows] = await Promise.all([Api.evaluacion(id), Api.calificaciones(id)]);
@@ -338,12 +456,16 @@ if (sidebar) {
     }
     state.evaluation = evaluation;
     state.rows = rows;
-    state.saved = rows.map(r => r.nota);
-    state.draft = [...state.saved];
+    // Las notas cuelgan de los componentes: { id_componente: nota }
+    state.saved = rows.map(r => ({ ...r.notas }));
+    state.draft = rows.map(r => ({ ...r.notas }));
+    const comps = evaluation.componentes;
     const locked = isLocked();
 
     $("#grades-group-title").textContent = `Grupo: ${evaluation.codigo_grupo}`;
     $("#grades-eval-title").textContent = `Evaluación: ${evaluation.nombre}`;
+    $("#grades-registro-meta").textContent =
+      `${evaluation.nombre_registro} · vale el ${evaluation.ponderacion} % del registro`;
     $("#grades-due-date").textContent = `Fecha límite: ${formatDate(evaluation.fecha_limite)}`;
     $("#min-grade").textContent = Reglas.NOTA_MINIMA.toFixed(1);
     $("#locked-banner").hidden = !locked;
@@ -352,22 +474,36 @@ if (sidebar) {
         `Estas calificaciones se trasladaron el ${formatDateTime(evaluation.fecha_traslado)} y no pueden modificarse.`;
     }
 
+    // Cabecera: una columna por componente. Con un solo componente al 100 %
+    // se muestra "Nota" a secas, para no cargar la pantalla sin necesidad.
+    const unaSolaParte = comps.length === 1;
+    $("#grades-table-head").innerHTML = `
+      <tr>
+        <th>#</th><th>CIF</th><th>Estudiante</th>
+        ${comps.map(c => `<th>${unaSolaParte ? "Nota" : `${escapeHtml(c.nombre)}<span class="th-peso">${c.ponderacion} %</span>`}</th>`).join("")}
+        ${unaSolaParte ? "" : "<th>Nota final</th>"}
+        <th>Estado</th>
+      </tr>`;
+
     // tabla (desktop)
     $("#grades-table-body").innerHTML = rows.map((row, i) => {
-      const status = statusFor(state.draft[i]);
+      const nota = notaPonderada(i);
+      const status = statusFor(nota);
       return `
         <tr>
           <td>${i + 1}</td>
           <td>${escapeHtml(row.cif_estudiante)}</td>
           <td>${escapeHtml(row.nombre_estudiante)}</td>
-          <td>${gradeInput(row, i, "t", locked)}</td>
+          ${comps.map(c => `<td>${gradeInput(row, i, c, "t", locked)}</td>`).join("")}
+          ${unaSolaParte ? "" : `<td><strong class="nota-final" data-nota="${i}">${formatGrade(nota)}</strong></td>`}
           <td><span class="status-pill ${status.cls}" data-status="${i}">${status.label}</span></td>
         </tr>`;
     }).join("");
 
     // acordeón (móvil)
     $("#grades-accordion").innerHTML = rows.map((row, i) => {
-      const status = statusFor(state.draft[i]);
+      const nota = notaPonderada(i);
+      const status = statusFor(nota);
       const open = i === 0;
       return `
         <div class="grade-card ${open ? "open" : ""}">
@@ -376,10 +512,18 @@ if (sidebar) {
             <i class="bi bi-chevron-down chev" aria-hidden="true"></i>
           </button>
           <div class="grade-card-body" id="grade-card-${i}">
+            ${comps.map(c => `
             <div class="grade-card-field">
-              <label class="grade-card-label" for="grade-c-${i}">Nota</label>
-              ${gradeInput(row, i, "c", locked)}
-            </div>
+              <label class="grade-card-label" for="grade-c-${i}-${c.id_componente}">
+                ${unaSolaParte ? "Nota" : `${escapeHtml(c.nombre)} <span class="th-peso">${c.ponderacion} %</span>`}
+              </label>
+              ${gradeInput(row, i, c, "c", locked)}
+            </div>`).join("")}
+            ${unaSolaParte ? "" : `
+            <div class="grade-card-field">
+              <span class="grade-card-label">Nota final</span>
+              <strong class="nota-final" data-nota="${i}">${formatGrade(nota)}</strong>
+            </div>`}
             <div class="grade-card-field">
               <span class="grade-card-label">Estado</span>
               <span class="status-pill ${status.cls}" data-status="${i}">${status.label}</span>
@@ -400,19 +544,44 @@ if (sidebar) {
     return state.evaluation?.estado === "TRASLADADA";
   }
 
-  // Campo de nota; view = "t" (tabla) o "c" (tarjeta) para que los id no se repitan
-  function gradeInput(row, i, view, locked){
+  // Nota ponderada de una fila a partir de sus componentes. Es el mismo cálculo
+  // que hace el servidor: se divide entre la ponderación realmente calificada,
+  // así lo que todavía no se evalúa no castiga el promedio.
+  function notaPonderada(i){
+    let acumulado = 0, peso = 0;
+    for (const c of state.evaluation.componentes) {
+      const nota = state.draft[i][c.id_componente];
+      if (nota !== null && nota !== undefined && nota !== "") {
+        acumulado += Number(nota) * c.ponderacion;
+        peso += c.ponderacion;
+      }
+    }
+    return peso ? Math.round(acumulado / peso * 100) / 100 : null;
+  }
+
+  const formatGrade = (nota) => nota === null ? "--" : nota.toFixed(2);
+
+  // Campo de nota de un componente; view = "t" (tabla) o "c" (tarjeta),
+  // para que los id no se repitan entre las dos vistas de la misma fila.
+  function gradeInput(row, i, componente, view, locked){
+    const id = componente.id_componente;
+    const etiqueta = state.evaluation.componentes.length === 1
+      ? `Nota de ${escapeHtml(row.nombre_estudiante)}`
+      : `${escapeHtml(componente.nombre)} de ${escapeHtml(row.nombre_estudiante)}`;
     return `
       <div class="grade-input-wrap">
         <input type="number" step="0.01" min="0" max="${Reglas.NOTA_MAXIMA}" inputmode="decimal" class="grade-input"
-               id="grade-${view}-${i}" data-idx="${i}" value="${state.draft[i] ?? ""}" placeholder="--"
-               aria-label="Nota de ${escapeHtml(row.nombre_estudiante)}" ${locked ? "disabled" : ""}>
-        <p class="field-error" id="grade-error-${view}-${i}" hidden>Nota entre 0.00 y 10.00, máximo 2 decimales</p>
+               id="grade-${view}-${i}-${id}" data-row="${i}" data-comp="${id}"
+               value="${state.draft[i][id] ?? ""}" placeholder="--"
+               aria-label="${etiqueta}" ${locked ? "disabled" : ""}>
+        <p class="field-error" id="grade-error-${view}-${i}-${id}" hidden>Nota entre 0.00 y 10.00, máximo 2 decimales</p>
       </div>`;
   }
 
-  function setFieldError(idx, hasError){
-    $$(`.grade-input[data-idx="${idx}"]`).forEach(inp => {
+  const inputsDe = (i, idComponente) => $$(`.grade-input[data-row="${i}"][data-comp="${idComponente}"]`);
+
+  function setFieldError(i, idComponente, hasError){
+    inputsDe(i, idComponente).forEach(inp => {
       const msg = inp.nextElementSibling;
       inp.classList.toggle("input-error", hasError);
       msg.hidden = !hasError;
@@ -426,9 +595,12 @@ if (sidebar) {
     });
   }
 
-  function updateStatus(idx, grade){
-    const st = statusFor(grade);
-    $$(`[data-status="${idx}"]`).forEach(pill => {
+  // Al cambiar un componente se recalcula la nota ponderada de toda la fila
+  function updateRow(i){
+    const nota = notaPonderada(i);
+    $$(`[data-nota="${i}"]`).forEach(celda => { celda.textContent = formatGrade(nota); });
+    const st = statusFor(nota);
+    $$(`[data-status="${i}"]`).forEach(pill => {
       pill.textContent = st.label;
       pill.className = `status-pill ${st.cls}`;
     });
@@ -440,7 +612,9 @@ if (sidebar) {
 
   function hasUnsavedChanges(){
     if (state.page !== "grades" || !state.draft || isLocked()) return false;
-    return hasInvalidGrades() || state.draft.some((g, i) => g !== state.saved[i]);
+    if (hasInvalidGrades()) return true;
+    return state.draft.some((fila, i) =>
+      Object.keys(fila).some(id => fila[id] !== state.saved[i][id]));
   }
 
   function updateSaveButtonState(){
@@ -450,21 +624,22 @@ if (sidebar) {
   function wireGradeInputs(){
     $$("#page-grades .grade-input").forEach(input => {
       input.addEventListener("input", () => {
-        const idx = Number(input.dataset.idx);
+        const i = Number(input.dataset.row);
+        const idComponente = Number(input.dataset.comp);
         const raw = input.value;
         // badInput: el navegador no pudo leer un número (p. ej. se escribió solo "e" o "-")
         const valid = !input.validity.badInput && Reglas.esNotaValida(raw);
 
         // sincroniza el mismo valor (válido o no) entre tabla y acordeón
-        $$(`.grade-input[data-idx="${idx}"]`).forEach(other => {
+        inputsDe(i, idComponente).forEach(other => {
           if (other !== input) other.value = raw;
         });
-        setFieldError(idx, !valid);
+        setFieldError(i, idComponente, !valid);
 
         // solo se modifica la copia de trabajo; el servidor se actualiza al pulsar "Guardar"
         if (valid) {
-          state.draft[idx] = raw === "" ? null : Number(raw);
-          updateStatus(idx, state.draft[idx]);
+          state.draft[i][idComponente] = raw === "" ? null : Number(raw);
+          updateRow(i);
         }
         updateSaveButtonState();
       });
@@ -492,12 +667,13 @@ if (sidebar) {
       return;
     }
 
-    const calificaciones = state.rows.map((row, i) => ({ id_matricula: row.id_matricula, nota: state.draft[i] }));
+    // Una entrada por estudiante con las notas de todos sus componentes
+    const calificaciones = state.rows.map((row, i) => ({ id_matricula: row.id_matricula, notas: state.draft[i] }));
     $("#save-grades").disabled = true;
     try {
       const rows = await Api.guardarCalificaciones(state.evaluation.id_evaluacion, calificaciones);
       state.rows = rows;
-      state.saved = rows.map(r => r.nota);
+      state.saved = rows.map(r => ({ ...r.notas }));
       showToast("Calificaciones guardadas correctamente");
     } catch (err) {
       handleError(err);
@@ -518,7 +694,9 @@ if (sidebar) {
       showToast("Guarda las calificaciones antes de trasladarlas");
       return;
     }
-    const pending = state.saved.filter(g => g === null).length;
+    // Falta una nota por cada componente sin calificar, no por estudiante
+    const pending = state.saved.reduce((total, fila) =>
+      total + Object.values(fila).filter(nota => nota === null).length, 0);
     if (pending > 0) {
       showToast(pending === 1
         ? "No se puede trasladar: falta 1 nota por ingresar"

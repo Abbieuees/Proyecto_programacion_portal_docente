@@ -510,6 +510,98 @@ body.app-page {
   margin-top: 14px;
 }
 
+/* Asignatura que el docente está revisando */
+.subject-card.selected,
+.registro-card.selected {
+  outline: 3px solid var(--navy);
+  outline-offset: -3px;
+}
+
+/* Aviso de reparto incompleto (las evaluaciones no suman 100 %) */
+.subject-meta.warn {
+  color: var(--amber-text);
+}
+
+
+/* REGISTROS (periodos del ciclo) — pantalla de inicio */
+.registro-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 20px;
+  margin-bottom: 8px;
+}
+
+.registro-card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+}
+
+/* El peso del registro sobre el ciclo: 30 % / 30 % / 40 % */
+.registro-peso {
+  background: var(--navy);
+  color: #fff;
+  height: 90px;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 2px;
+}
+
+.registro-peso strong {
+  font-size: 2.6rem;
+  line-height: 1;
+}
+
+.registro-peso span {
+  font-size: 1.1rem;
+}
+
+.registro-card.closed .registro-peso {
+  background: var(--text-muted);
+}
+
+.registro-body {
+  padding: 18px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  flex: 1;
+}
+
+.registro-body h3 {
+  font-size: 1.15rem;
+}
+
+.registro-body .btn {
+  margin-top: 14px;
+  align-self: stretch;
+}
+
+
+/* Ponderación de un componente en la cabecera de la tabla de notas */
+.th-peso {
+  display: block;
+  font-weight: 400;
+  font-size: .78rem;
+  opacity: .8;
+}
+
+/* Nota ponderada de la fila, calculada a partir de sus componentes */
+.nota-final {
+  font-size: 1.05rem;
+}
+
+/* "Teórico 60 % · Práctico 40 %" en la lista de evaluaciones */
+.eval-partes {
+  color: var(--text-muted);
+  font-size: .85rem;
+}
+
 
 .info-banner {
   background: #e7edfb;
