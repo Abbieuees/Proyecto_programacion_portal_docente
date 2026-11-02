@@ -1,0 +1,80 @@
+# Pruebas manuales de la API con la extensión "REST Client" de VS Code:
+# pulsa "Send Request" sobre cada petición. Antes ejecuta el backend: npm start
+
+@base = http://localhost:3000/api
+
+### 1. Iniciar sesión con el docente de prueba
+# @name login
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{
+  "correo": "docente@uees.edu.sv",
+  "contrasena": "Docente2026"
+}
+
+### Las demás peticiones usan el token de la respuesta anterior
+@token = {{login.response.body.token}}
+
+### 2. Perfil del docente
+GET {{base}}/perfil
+Authorization: Bearer {{token}}
+
+### 3. Mis grupos (panel del docente)
+GET {{base}}/grupos
+Authorization: Bearer {{token}}
+
+### 4. Evaluaciones de un grupo (el filtro por tipo es opcional)
+GET {{base}}/grupos/1/evaluaciones?tipo=PARCIAL
+Authorization: Bearer {{token}}
+
+### 5. Nómina del grupo
+GET {{base}}/grupos/1/estudiantes
+Authorization: Bearer {{token}}
+
+### 6. Detalle de una evaluación
+GET {{base}}/evaluaciones/3
+Authorization: Bearer {{token}}
+
+### 7. Notas de la evaluación
+GET {{base}}/evaluaciones/3/calificaciones
+Authorization: Bearer {{token}}
+
+### 8. Guardar notas (matrícula 4 = Mariana García, 5 = Laura Martínez)
+PUT {{base}}/evaluaciones/3/calificaciones
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "calificaciones": [
+    { "id_matricula": 4, "nota": 7.5 },
+    { "id_matricula": 5, "nota": 6 }
+  ]
+}
+
+### 9. Nota inválida: responde 400 con el detalle y no guarda nada
+PUT {{base}}/evaluaciones/3/calificaciones
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "calificaciones": [
+    { "id_matricula": 4, "nota": 10.5 }
+  ]
+}
+
+### 10. Trasladar: 409 si faltan notas o si ya se trasladó
+POST {{base}}/evaluaciones/3/traslado
+Authorization: Bearer {{token}}
+
+### 11. Historial de evaluaciones trasladadas
+GET {{base}}/historial
+Authorization: Bearer {{token}}
+
+### 12. Grupo de otro docente: responde 403
+GET {{base}}/grupos/3
+Authorization: Bearer {{token}}
+
+### 13. Cerrar sesión
+POST {{base}}/auth/logout
+Authorization: Bearer {{token}}
