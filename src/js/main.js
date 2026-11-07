@@ -1278,7 +1278,18 @@ if (sidebar) {
     frame.title = "Video tutorial del Portal Docente";
     frame.loading = "lazy";
     frame.allowFullscreen = true;
+    frame.referrerPolicy = "strict-origin-when-cross-origin";
+    frame.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
     caja.replaceChildren(frame);
+
+    // YouTube rechaza incrustar desde file://, por eso se ofrece el enlace directo
+    const enlace = document.createElement("a");
+    enlace.href = url.replace("/embed/", "/watch?v=").replace("youtube-nocookie.com", "youtube.com");
+    enlace.target = "_blank";
+    enlace.rel = "noopener noreferrer";
+    enlace.textContent = "¿No se reproduce? Ver el video en YouTube";
+    enlace.className = "video-link";
+    caja.insertAdjacentElement("afterend", enlace);
   })();
 
   function openMobileMenu(){

@@ -1576,6 +1576,12 @@ body.cargando .loading-bar {
   border: 0;
 }
 
+.video-link {
+  display: inline-block;
+  margin: -16px 0 24px;
+  font-size: .9rem;
+}
+
 .manual ol {
   margin: 0;
   padding-left: 20px;
