@@ -865,6 +865,14 @@ body.app-page {
   display: none;
 }
 
+.cycle-summary {
+  margin-top: 28px;
+}
+
+.cycle-summary .page-subtitle {
+  margin: -4px 0 14px;
+}
+
 
 .empty-state {
   display: flex;
@@ -1167,6 +1175,11 @@ body.cargando .loading-bar {
 
   .table-wrap {
     display: none;
+  }
+
+  .cycle-summary .table-wrap {
+    display: block;
+    overflow-x: auto;
   }
 
   .eval-list {
@@ -1590,4 +1603,3 @@ body.cargando .loading-bar {
 }
 
 .welcome-icon { color: var(--gold); margin: 0 0 0 4px; }
-

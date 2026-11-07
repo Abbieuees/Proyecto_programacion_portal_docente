@@ -206,6 +206,21 @@
 
       <div id="grades-accordion" class="grades-accordion"></div>
 
+      <section class="cycle-summary" aria-labelledby="cycle-summary-title">
+        <h3 id="cycle-summary-title" class="section-label">
+          <i class="bi bi-graph-up-arrow" aria-hidden="true"></i>Resumen del período y ciclo
+        </h3>
+        <p id="cycle-summary-description" class="page-subtitle"></p>
+        <div class="table-wrap">
+          <table class="grades-table">
+            <thead>
+              <tr><th>CIF</th><th>Estudiante</th><th>Nota del período</th><th>Nota final/proyectada del ciclo</th><th>Estado</th></tr>
+            </thead>
+            <tbody id="cycle-summary-body"></tbody>
+          </table>
+        </div>
+      </section>
+
       <div class="grades-actions">
         <button id="cancel-grades" class="btn btn-outline">Cancelar</button>
         <button id="save-grades" class="btn btn-primary">
@@ -317,9 +332,8 @@
       <div class="help-grid">
         <section class="card">
           <h3 class="section-label"><i class="bi bi-play-btn" aria-hidden="true"></i>Video tutorial</h3>
-          <!-- Pega aquí el enlace "embed" de tu video (p. ej. https://www.youtube-nocookie.com/embed/ID_DEL_VIDEO) -->
-          <div id="tutorial-video" class="video-frame" data-video-url="">
-            <p class="video-empty"><i class="bi bi-camera-video" aria-hidden="true"></i>El video tutorial estará disponible pronto.</p>
+          <div id="tutorial-video" class="video-frame" data-video-url="https://www.youtube-nocookie.com/embed/hk3YDuI_Npg">
+            <p class="video-empty"><i class="bi bi-camera-video" aria-hidden="true"></i>Cargando video tutorial…</p>
           </div>
         </section>
 
@@ -329,7 +343,7 @@
             <li><strong>Inicia sesión</strong> con tu correo institucional y tu contraseña. Sin sesión no se puede acceder a las vistas académicas.</li>
             <li><strong>Elige el ciclo y la asignatura</strong> en Inicio, y pulsa <em>Trabajar aquí</em> en el registro (30 %, 30 % o 40 %).</li>
             <li><strong>Selecciona la evaluación</strong> de tu grupo para abrir su listado de estudiantes.</li>
-            <li><strong>Escribe las notas</strong> (0.00 a 10.00). La nota final y el estado (aprobado desde 6.0) se calculan al instante.</li>
+            <li><strong>Escribe las notas</strong> (0.00 a 10.00). La nota de la evaluación, el estado (aprobado desde 6.0) y la proyección ponderada de los tres registros se actualizan automáticamente.</li>
             <li><strong>Carga masiva:</strong> usa <em>Descargar plantilla</em>, complétala en Excel y súbela con <em>Importar CSV/JSON</em>. Revisa y guarda.</li>
             <li><strong>Guarda</strong> con <em>Guardar Calificaciones</em> y, cuando todas las notas estén completas, <strong>traslada</strong> para oficializarlas: después no se pueden editar.</li>
             <li><strong>Exporta o imprime</strong> el acta con <em>Exportar acta (CSV)</em> o <em>Imprimir</em>.</li>

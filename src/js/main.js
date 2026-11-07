@@ -96,6 +96,7 @@ if (sidebar) {
     groupFilter: null,         // asignatura elegida en el selector de Inicio
     evaluation: null,          // evaluación abierta en la carga de notas
     rows: [],                  // estudiantes de esa evaluación
+    cycleSummary: [],          // notas del período y proyección del ciclo por estudiante
     saved: [],                 // [{ id_componente: nota }] tal como están en el servidor
     draft: null,               // misma forma, editable; se envía al pulsar "Guardar"
     gradesFrom: "evaluations", // página a la que regresa "Volver" desde la carga de notas
@@ -617,11 +618,15 @@ if (sidebar) {
       const evaluations = await Api.evaluaciones(groupId, { idRegistro: state.registro?.id_registro });
       id = (evaluations.find(e => e.estado !== "TRASLADADA") ?? evaluations[0])?.id_evaluacion;
     }
-    const [evaluation, rows] = await Promise.all([Api.evaluacion(id), Api.calificaciones(id)]);
-    return { evaluation, rows };
+    const evaluation = await Api.evaluacion(id);
+    const [rows, cycleSummary] = await Promise.all([
+      Api.calificaciones(id),
+      Api.notasDelRegistro(evaluation.id_grupo, evaluation.id_registro)
+    ]);
+    return { evaluation, rows, cycleSummary };
   }
 
-  function paintGrades({ evaluation, rows }, { from } = {}){
+  function paintGrades({ evaluation, rows, cycleSummary }, { from } = {}){
     if (from) state.gradesFrom = from;
     if (state.group?.id_grupo !== evaluation.id_grupo) {
       state.group = state.groups.find(g => g.id_grupo === evaluation.id_grupo)
@@ -629,6 +634,7 @@ if (sidebar) {
     }
     state.evaluation = evaluation;
     state.rows = rows;
+    state.cycleSummary = cycleSummary;
     // Las notas cuelgan de los componentes: { id_componente: nota }
     state.saved = rows.map(r => ({ ...r.notas }));
     state.draft = rows.map(r => ({ ...r.notas }));
@@ -705,6 +711,7 @@ if (sidebar) {
         </div>`;
     }).join("");
 
+    paintCycleSummary();
     wireGradeInputs();
     wireAccordionToggles();
 
@@ -713,6 +720,28 @@ if (sidebar) {
     $("#import-grades").hidden = locked;
     $("#template-grades").hidden = locked;
     updateSaveButtonState();
+  }
+
+  function paintCycleSummary(){
+    const periodo = `${state.evaluation.nombre_registro} (${state.evaluation.ponderacion_registro} % del ciclo)`;
+    $("#cycle-summary-description").textContent =
+      `La nota del ciclo pondera Registro 1 (30 %), Registro 2 (30 %) y Registro 3 (40 %). ` +
+      `Mientras existan períodos pendientes se muestra una proyección con las notas registradas.`;
+    const porMatricula = new Map(state.cycleSummary.map(fila => [fila.id_matricula, fila]));
+    $("#cycle-summary-body").innerHTML = state.rows.map(row => {
+      const resumen = porMatricula.get(row.id_matricula);
+      const notaCiclo = resumen?.nota_proyectada ?? null;
+      const estado = statusFor(notaCiclo);
+      return `
+        <tr>
+          <td>${escapeHtml(row.cif_estudiante)}</td>
+          <td>${escapeHtml(row.nombre_estudiante)}</td>
+          <td>${formatGrade(resumen?.nota ?? null)}</td>
+          <td><strong>${formatGrade(notaCiclo)}</strong></td>
+          <td><span class="status-pill ${estado.cls}">${estado.label}</span></td>
+        </tr>`;
+    }).join("");
+    $("#cycle-summary-title").lastChild.textContent = `Resumen de ${periodo}`;
   }
 
   function isLocked(){
@@ -849,6 +878,11 @@ if (sidebar) {
       const rows = await Api.guardarCalificaciones(state.evaluation.id_evaluacion, calificaciones);
       state.rows = rows;
       state.saved = rows.map(r => ({ ...r.notas }));
+      state.cycleSummary = await Api.notasDelRegistro(
+        state.evaluation.id_grupo,
+        state.evaluation.id_registro
+      );
+      paintCycleSummary();
       showToast("Calificaciones guardadas correctamente");
     } catch (err) {
       handleError(err);
@@ -889,7 +923,7 @@ if (sidebar) {
     $("#translate-grades").disabled = true;
     try {
       const evaluation = await Api.trasladar(state.evaluation.id_evaluacion);
-      paintGrades({ evaluation, rows: state.rows });
+      paintGrades({ evaluation, rows: state.rows, cycleSummary: state.cycleSummary });
       showToast("Calificaciones trasladadas correctamente");
     } catch (err) {
       handleError(err);
